@@ -31,7 +31,12 @@ export const recordings = pgTable('recordings', {
   blobUrl: text('blob_url').notNull(),
   durationMs: integer('duration_ms'),
   peakLevel: integer('peak_level'),
-  pitchStats: jsonb('pitch_stats').$type<{ min: number; max: number; median: number; confidence: number }>(),
+  pitchStats: jsonb('pitch_stats').$type<{
+    min?: number;
+    max?: number;
+    median?: number;
+    confidence?: number;
+  } | null>(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
 });
 

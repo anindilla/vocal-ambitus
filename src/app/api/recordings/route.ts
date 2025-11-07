@@ -61,17 +61,19 @@ export async function POST(request: Request) {
       );
     }
 
-    const blob = await saveRecordingToBlob(fileEntry, sessionId, parsed.step);
+    const ensuredSessionId: string = sessionId;
+
+    const blob = await saveRecordingToBlob(fileEntry, ensuredSessionId, parsed.step);
 
     const [record] = await db
       .insert(recordings)
       .values({
-        sessionId,
+        sessionId: ensuredSessionId,
         step: parsed.step,
         blobUrl: blob.url,
         durationMs: parsed.durationMs,
         peakLevel: parsed.peakLevel,
-        pitchStats: parsed.pitchStats,
+        pitchStats: parsed.pitchStats ?? null,
         createdAt: now
       })
       .returning({ id: recordings.id, blobUrl: recordings.blobUrl });
