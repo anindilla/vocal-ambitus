@@ -35,6 +35,12 @@ const GENDER_COPY: Record<GenderIdentity, { label: string; description: string }
   }
 };
 
+const PREP_ITEMS = [
+  { title: 'Mic access', detail: 'Allow the browser prompt before hitting record.' },
+  { title: 'Quiet zone', detail: 'Shut doors, mute other devices, and use headphones if possible.' },
+  { title: 'Level check', detail: 'Keep the meter green/amber. If it turns red, back off a little.' }
+];
+
 const STEP_ORDER: StepKey[] = ['profile', 'speaking', 'song', 'range'];
 
 const RANGE_REQUIRED_TAKES = 3;
