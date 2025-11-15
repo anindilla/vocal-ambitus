@@ -1,13 +1,21 @@
 # Vocal Ambitus
 
-Responsive web experience that guides singers through a four-step vocal ambitus assessment. Users capture reference audio, we run a lightweight pitch heuristic, persist takes to Vercel Blob, and surface a human-friendly range estimate backed by Vercel Postgres.
+Responsive web experience that guides singers through a four-step vocal ambitus assessment. Users capture reference audio, the browser analyses pitch in real time, and the app surfaces a friendly range estimate with fallbacks when data is scarce.
+
+## Features
+
+- Guided four-step intake (profile, speech, song, range) with accessibility-first UI
+- Real-time waveform + mic level feedback and “ma‑ma‑ma” pattern sweeps that rotate through multiple roots
+- Gender-aware preset selector plus progress tracking to unlock the Finish button
+- Automatic result generation with confidence score and graceful fallback if recordings are limited
+- Admin/debug endpoint to review stored sessions
 
 ## Stack
 
 - Next.js 14 App Router (TypeScript, React 18)
 - Tailwind CSS for responsive UI
 - Web Audio APIs (`MediaRecorder`, `AudioContext`) for capture & tone playback
-- Drizzle ORM with Vercel Postgres + Vercel Blob storage
+- Drizzle ORM with a Postgres + object storage backend
 - Vitest for unit and API-route tests
 
 ## Getting started
@@ -21,13 +29,11 @@ Launches the dev server on `http://localhost:3000`. The `/test` route exposes th
 
 ### Environment variables
 
-Create a `.env.local` file with:
+Create a `.env.local` file with the credentials for your Postgres instance and object storage:
 
-```bash
-POSTGRES_URL="postgres://..."           # Vercel Postgres connection string
-BLOB_READ_WRITE_TOKEN="vercel_blob_rw"  # Token from Vercel Blob dashboard
-ADMIN_TOKEN="optional-debug-token"      # Optional: protects /admin route
-```
+- `POSTGRES_URL`
+- `BLOB_READ_WRITE_TOKEN` (or equivalent)
+- `ADMIN_TOKEN` (optional; protects `/admin`)
 
 When running locally without Blob/Postgres, you can stub API calls by skipping the “Save this take” step, but uploads will fail without credentials.
 
@@ -41,11 +47,10 @@ When running locally without Blob/Postgres, you can stub API calls by skipping t
 
 ## Deployment
 
-1. Provision Vercel Postgres + Blob (Project Settings → Storage).
-2. Set `POSTGRES_URL` and `BLOB_READ_WRITE_TOKEN` in Vercel project environment.
-3. Optionally set `ADMIN_TOKEN` for the admin page.
-4. Push to a Git repo linked to Vercel; `npm run build` must succeed.
-5. After first deploy, run `npx drizzle-kit push` (or use Vercel migration workflow) to apply the schema in `db/schema.ts`.
+1. Provision your Postgres database + object storage bucket.
+2. Set `POSTGRES_URL`, `BLOB_READ_WRITE_TOKEN`, and optional `ADMIN_TOKEN` in your hosting provider’s environment.
+3. Run `npx drizzle-kit push` once to apply the schema in `db/schema.ts`.
+4. Deploy via your preferred CI/CD or hosting provider (`npm run build` must succeed).
 
 ## Roadmap ideas
 
