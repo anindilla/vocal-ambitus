@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 import { RecorderControls } from '@/components/RecorderControls';
 import { StepNavigator } from '@/components/StepNavigator';
@@ -80,6 +81,7 @@ const DEFAULT_PROFILE_BY_GENDER: Record<GenderIdentity, ToneProfile> = {
 };
 
 export default function TestFlowPage() {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [gender, setGender] = useState<GenderIdentity | null>(null);
   const [experienceLevel, setExperienceLevel] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
@@ -92,6 +94,7 @@ export default function TestFlowPage() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [uploadingStep, setUploadingStep] = useState<RecordingStep | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isFinishing, setIsFinishing] = useState(false);
   const [uploadedSteps, setUploadedSteps] = useState<Record<Exclude<RecordingStep, 'range'>, boolean>>({
     speaking: false,
     song: false
@@ -151,6 +154,19 @@ export default function TestFlowPage() {
 
   const movePrev = () => {
     setCurrentStep(prev => Math.max(prev - 1, 0));
+  };
+
+  const handleFinish = async () => {
+    if (!sessionId) {
+      setUploadError('Save at least one take before finishing.');
+      return;
+    }
+    setIsFinishing(true);
+    try {
+      router.push(`/result/${sessionId}`);
+    } finally {
+      setIsFinishing(false);
+    }
   };
 
   const recorderByStep: Record<RecordingStep, ReturnType<typeof useRecorder>> = {
@@ -330,10 +346,12 @@ export default function TestFlowPage() {
             currentStep={currentStep}
             totalSteps={totalSteps}
             canProceed={canProceed}
+            isSubmitting={isFinishing}
             onPrev={movePrev}
             onNext={() => {
               if (activeStep === 'range' && canProceed) {
-                // Future: trigger submit action to store session and redirect to results
+                void handleFinish();
+                return;
               }
               moveNext();
             }}

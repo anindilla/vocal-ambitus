@@ -43,7 +43,7 @@ export function StepNavigator({
         <button
           type="button"
           onClick={onNext}
-          disabled={!canProceed}
+          disabled={!canProceed || (isLast && Boolean(isSubmitting))}
           aria-disabled={!canProceed}
           className="inline-flex items-center justify-center rounded-full bg-emerald-500 px-6 py-2 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
         >
