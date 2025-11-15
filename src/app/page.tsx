@@ -16,26 +16,18 @@ export default function HomePage() {
         </p>
       </div>
 
-      <div className="flex w-full max-w-3xl flex-col gap-4 rounded-3xl border border-slate-900 bg-slate-950/40 p-5 text-left sm:flex-row sm:items-center sm:text-center">
-        <div className="flex-1 space-y-1">
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">Before you start</p>
-          <p className="text-sm text-slate-300">
-            Find a quiet space, connect a mic + speakers or headphones, and set aside about 8 minutes.
-          </p>
-        </div>
-        <dl className="grid flex-1 gap-4 text-sm text-slate-300 sm:grid-cols-2">
-          <div className="space-y-1">
-            <dt className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-300">What you’ll need</dt>
-            <dd className="text-sm text-slate-200">
-              Browser mic access, speakers or headphones, and a short song snippet you love.
-            </dd>
+      <section className="grid w-full max-w-4xl gap-4 rounded-3xl border border-slate-900 bg-slate-950/50 p-6 text-left sm:grid-cols-3">
+        {[
+          { title: 'Prep', detail: 'Quiet corner · mic permission · 8 minutes' },
+          { title: 'What you’ll need', detail: 'Browser + mic, headphones or speakers, favourite chorus' },
+          { title: 'What you’ll get', detail: 'Saved takes, instant range hints, recap with next steps' }
+        ].map(item => (
+          <div key={item.title} className="space-y-1 rounded-2xl border border-slate-900/80 bg-slate-950/60 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-300">{item.title}</p>
+            <p className="text-sm text-slate-200">{item.detail}</p>
           </div>
-          <div className="space-y-1">
-            <dt className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-300">What you’ll get</dt>
-            <dd className="text-sm text-slate-200">Saved takes, instant range hints, and personalised tips in your recap.</dd>
-          </div>
-        </dl>
-      </div>
+        ))}
+      </section>
 
       <div className="flex flex-col gap-4 sm:flex-row">
         <Link
@@ -53,37 +45,23 @@ export default function HomePage() {
         </Link>
       </div>
 
-      <section id="how-it-works" className="w-full max-w-4xl space-y-8 border-t border-slate-800 pt-10 text-left">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.4em] text-emerald-300">How it works</p>
-            <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">Four lightweight steps</h2>
-          </div>
-          <p className="text-sm text-slate-400">Re-record or reset any step before sending.</p>
+      <section id="how-it-works" className="w-full max-w-4xl space-y-6 border-t border-slate-900 pt-10 text-left">
+        <div className="flex flex-col gap-1">
+          <p className="text-xs font-semibold uppercase tracking-[0.4em] text-emerald-300">Flow</p>
+          <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">Four quick checkpoints</h2>
+          <p className="text-sm text-slate-400">Re-record anything. Nothing leaves your browser until you save.</p>
         </div>
-        <ol className="grid gap-4 text-slate-200 sm:grid-cols-2">
+        <ol className="grid gap-3 text-slate-200 sm:grid-cols-4">
           {[
-            {
-              title: 'Tailor the reference ranges',
-              description: 'Share how you identify and your comfort level with vocal training so we can frame the results.'
-            },
-            {
-              title: 'Baseline speech check',
-              description: 'Speak for ~20 seconds. We detect your median speaking pitch and overall tessitura.'
-            },
-            {
-              title: 'Comfort song snippet',
-              description: 'Sing a chorus or vocalise you love. We look at the highs, lows, and pitch variance.'
-            },
-            {
-              title: 'Tone sweeps',
-              description: 'Do a call-and-response with 6–8 tones to map your upper and lower boundaries.'
-            }
+            { title: 'Profile', description: 'Tell us how you identify + experience level.' },
+            { title: 'Speak', description: '20s natural speech → baseline pitch.' },
+            { title: 'Sing', description: 'Favourite chorus spanning comfy lows/highs.' },
+            { title: 'Sweep', description: 'Call-and-response tones to map extremes.' }
           ].map((item, index) => (
-            <li key={item.title} className="rounded-2xl border border-slate-900 bg-slate-950/40 p-5">
+            <li key={item.title} className="rounded-2xl border border-slate-900 bg-slate-950/40 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.4em] text-emerald-300">Step {index + 1}</p>
-              <h3 className="mt-1 text-lg font-semibold tracking-tight text-white">{item.title}</h3>
-              <p className="mt-2 text-sm text-slate-300">{item.description}</p>
+              <h3 className="mt-1 text-base font-semibold tracking-tight text-white">{item.title}</h3>
+              <p className="text-xs text-slate-400">{item.description}</p>
             </li>
           ))}
         </ol>

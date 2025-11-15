@@ -46,19 +46,10 @@ const RANGE_SEQUENCE = [
   { note: 'C5', frequency: 523.25 }
 ];
 
-const CALIBRATION_TIPS = [
-  {
-    title: 'Allow mic access',
-    detail: 'When prompted, accept microphone permission so we can capture your takes.'
-  },
-  {
-    title: 'Balance your input',
-    detail: 'Aim for the level meter to hover around 40–70% (green/amber). Red means clipping.'
-  },
-  {
-    title: 'Use headphones if possible',
-    detail: 'Headphones prevent the tone sweeps from feeding back into the mic.'
-  }
+const PREP_ITEMS = [
+  { title: 'Mic access', detail: 'Allow the browser prompt before hitting record.' },
+  { title: 'Quiet zone', detail: 'Shut doors, mute other devices, and pop on headphones if you have them.' },
+  { title: 'Level check', detail: 'Keep the meter green/amber. If it turns red, back off a little.' }
 ];
 
 export default function TestFlowPage() {
@@ -186,7 +177,7 @@ export default function TestFlowPage() {
           You can review and re-record before sending anything to us.
         </p>
       </header>
-      <CalibrateBanner />
+      <PrepStrip />
 
       <section className="grid gap-6 rounded-3xl border border-slate-900 bg-slate-900/60 p-6 shadow-lg shadow-slate-950/30 sm:grid-cols-[320px,1fr] sm:p-10">
         <aside className="flex flex-col gap-6" aria-label="Progress through the four steps">
@@ -446,17 +437,14 @@ function SpeakingStep({
           Spend 20 seconds introducing yourself or describing your day. We use this to anchor your tessitura and median pitch.
         </p>
       </header>
-      <ol className="space-y-4 rounded-2xl border border-slate-800 bg-slate-950/40 p-4 text-sm text-slate-300">
-        <li>
-          <strong className="text-white">Environment.</strong> Choose the quietest corner available and silence background music.
-        </li>
-        <li>
-          <strong className="text-white">Distance.</strong> Keep 15–20 cm from the mic. Aim for the level meter to stay green/amber.
-        </li>
-        <li>
-          <strong className="text-white">Retake freely.</strong> If you notice clipping (red), tap reset and try again.
-        </li>
-      </ol>
+      <StepInfoList
+        heading="Light checklist"
+        items={[
+          'Pick the quietest corner you can and mute everything else.',
+          'Stay ~15 cm from the mic; keep the meter green/amber.',
+          'Reset and redo if you hear clipping or background noise.'
+        ]}
+      />
       <RecorderControls
         status={status}
         level={level}
@@ -495,23 +483,14 @@ function SongStep({
           Choose a song or vocalise you love. Aim for 20–30 seconds that showcases both a gentle low and an effortless high.
         </p>
       </header>
-      <div className="grid gap-4 rounded-2xl border border-slate-800 bg-slate-950/40 p-4 sm:grid-cols-2">
-        <div>
-          <h3 className="text-sm font-semibold text-slate-200">Helpful prompts</h3>
-          <ul className="mt-2 list-disc space-y-2 pl-5 text-sm text-slate-300">
-            <li>Stick to a section you can repeat confidently.</li>
-            <li>Include at least one phrase that climbs and one that descends.</li>
-            <li>Hum the first bar before recording to settle pitch and tempo.</li>
-          </ul>
-        </div>
-        <div>
-          <h3 className="text-sm font-semibold text-slate-200">What we analyse</h3>
-          <ul className="mt-2 list-disc space-y-2 pl-5 text-sm text-slate-300">
-            <li>Average and median pitch compared to your speaking baseline.</li>
-            <li>Pitch variance and the gap between the highest and lowest sustained tones.</li>
-          </ul>
-        </div>
-      </div>
+      <StepInfoList
+        heading="Make it comfortable"
+        items={[
+          'Loop a chorus you can sing on autopilot.',
+          'Include one phrase that climbs and one that falls.',
+          'Hum the first bar before you start to settle pitch and tempo.'
+        ]}
+      />
       <RecorderControls
         status={status}
         level={level}
@@ -567,9 +546,9 @@ function RangeStep({
       <div className="space-y-4 rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 className="text-sm font-semibold text-slate-200">Upcoming sequence</h3>
+            <h3 className="text-sm font-semibold text-slate-200">Tone playlist</h3>
             <p className="mt-1 text-sm text-slate-300">We’ll adjust dynamically after your first pass.</p>
-            <p className="text-xs text-slate-500">Tip: wear headphones or lower speaker volume to avoid feedback.</p>
+            <p className="text-xs text-slate-500">Headphones recommended to avoid feedback loops.</p>
           </div>
           <button
             type="button"
@@ -653,25 +632,34 @@ function RecordingActions({
   );
 }
 
-function CalibrateBanner() {
+function StepInfoList({ heading, items }: { heading?: string; items: string[] }) {
   return (
-    <section
-      aria-label="Calibration checklist"
-      className="grid gap-4 rounded-3xl border border-slate-900 bg-slate-950/50 p-5 text-left sm:grid-cols-[220px,1fr]"
-    >
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.4em] text-emerald-300">Calibration</p>
-        <h2 className="mt-2 text-lg font-semibold text-white">3 quick reminders before you record</h2>
-        <p className="mt-1 text-sm text-slate-300">Tick these boxes mentally to get the cleanest signal.</p>
-      </div>
-      <ul className="space-y-3 text-sm text-slate-200">
-        {CALIBRATION_TIPS.map(tip => (
-          <li key={tip.title} className="rounded-2xl border border-slate-900/70 bg-slate-900/40 px-4 py-3">
-            <p className="font-semibold text-white">{tip.title}</p>
-            <p className="text-slate-300">{tip.detail}</p>
+    <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+      {heading ? <p className="text-sm font-semibold text-slate-200">{heading}</p> : null}
+      <ul className="mt-2 space-y-2 text-sm text-slate-300">
+        {items.map(item => (
+          <li key={item} className="flex gap-2">
+            <span className="mt-1 inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-400" />
+            <span>{item}</span>
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+function PrepStrip() {
+  return (
+    <section
+      aria-label="Session preparation"
+      className="grid gap-3 rounded-3xl border border-slate-900 bg-slate-950/50 p-5 text-left sm:grid-cols-3"
+    >
+      {PREP_ITEMS.map(item => (
+        <div key={item.title} className="rounded-2xl border border-slate-900/60 bg-slate-950/60 px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-300">{item.title}</p>
+          <p className="mt-1 text-sm text-slate-200">{item.detail}</p>
+        </div>
+      ))}
     </section>
   );
 }
