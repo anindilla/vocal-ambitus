@@ -17,20 +17,22 @@ export default function HomePage() {
       </div>
 
       <div className="flex w-full max-w-3xl flex-col gap-4 rounded-3xl border border-slate-900 bg-slate-950/40 p-5 text-left sm:flex-row sm:items-center sm:text-center">
-        <div className="flex-1">
+        <div className="flex-1 space-y-1">
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">Before you start</p>
-          <p className="mt-2 text-base text-slate-200">
+          <p className="text-sm text-slate-300">
             Find a quiet space, connect a mic + speakers or headphones, and set aside about 8 minutes.
           </p>
         </div>
         <dl className="grid flex-1 gap-4 text-sm text-slate-300 sm:grid-cols-2">
-          <div>
-            <dt className="font-semibold text-slate-100">What you’ll need</dt>
-            <dd>Browser mic access, speakers/headphones, and a short song snippet.</dd>
+          <div className="space-y-1">
+            <dt className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-300">What you’ll need</dt>
+            <dd className="text-sm text-slate-200">
+              Browser mic access, speakers or headphones, and a short song snippet you love.
+            </dd>
           </div>
-          <div>
-            <dt className="font-semibold text-slate-100">What you’ll get</dt>
-            <dd>Saved takes, immediate range hints, and tailored tips in your recap.</dd>
+          <div className="space-y-1">
+            <dt className="text-xs font-semibold uppercase tracking-[0.35em] text-emerald-300">What you’ll get</dt>
+            <dd className="text-sm text-slate-200">Saved takes, instant range hints, and personalised tips in your recap.</dd>
           </div>
         </dl>
       </div>
@@ -54,8 +56,8 @@ export default function HomePage() {
       <section id="how-it-works" className="w-full max-w-4xl space-y-8 border-t border-slate-800 pt-10 text-left">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.4em] text-emerald-300">How it works</p>
-            <h2 className="text-2xl font-semibold text-white sm:text-3xl">Four lightweight steps</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.4em] text-emerald-300">How it works</p>
+            <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">Four lightweight steps</h2>
           </div>
           <p className="text-sm text-slate-400">Re-record or reset any step before sending.</p>
         </div>
@@ -79,8 +81,8 @@ export default function HomePage() {
             }
           ].map((item, index) => (
             <li key={item.title} className="rounded-2xl border border-slate-900 bg-slate-950/40 p-5">
-              <p className="text-sm font-semibold text-emerald-300">Step {index + 1}</p>
-              <h3 className="mt-1 text-lg font-semibold text-white">{item.title}</h3>
+              <p className="text-xs font-semibold uppercase tracking-[0.4em] text-emerald-300">Step {index + 1}</p>
+              <h3 className="mt-1 text-lg font-semibold tracking-tight text-white">{item.title}</h3>
               <p className="mt-2 text-sm text-slate-300">{item.description}</p>
             </li>
           ))}
