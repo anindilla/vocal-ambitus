@@ -5,11 +5,11 @@ import { useMemo } from 'react';
 type RecorderStatus = 'idle' | 'recording' | 'processing' | 'finished' | 'error';
 
 const statusCopy: Record<RecorderStatus, string> = {
-  idle: 'Ready to record',
-  recording: 'Recording…',
-  processing: 'Processing…',
-  finished: 'Captured',
-  error: 'Permission or device error'
+  idle: 'Ready to record. Press start and speak naturally.',
+  recording: 'Recording… tap stop when you are done.',
+  processing: 'Processing… please wait.',
+  finished: 'Captured. You can preview or re-record.',
+  error: 'Permission or device error—check your mic settings.'
 };
 
 export type RecorderControlsProps = {
@@ -49,11 +49,20 @@ export function RecorderControls({
   return (
     <div className="flex flex-col gap-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow-sm shadow-slate-950/40">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-slate-200">{statusCopy[status]}</span>
+        <span className="text-sm font-medium text-slate-200" aria-live="polite">
+          {statusCopy[status]}
+        </span>
         {formattedDuration ? <span className="text-xs text-slate-400">{formattedDuration}</span> : null}
       </div>
       <div className="flex items-center gap-3">
-        <div className="h-2 flex-1 rounded-full bg-slate-800">
+        <div
+          className="h-2 flex-1 rounded-full bg-slate-800"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(Math.min(1, Math.max(0, level)) * 100)}
+          aria-label="Live microphone level"
+        >
           <div
             className={`h-full rounded-full transition-[width,background-color] ${
               level > 0.75 ? 'bg-rose-500' : level > 0.4 ? 'bg-amber-400' : 'bg-emerald-500'
@@ -61,7 +70,10 @@ export function RecorderControls({
             style={{ width: `${Math.min(1, Math.max(0, level)) * 100}%` }}
           />
         </div>
-        <span className="text-xs text-slate-400">Mic level</span>
+        <span className="text-xs text-slate-400">
+          Mic level
+          <span className="sr-only"> {Math.round(Math.min(1, Math.max(0, level)) * 100)} percent</span>
+        </span>
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <button
@@ -71,6 +83,8 @@ export function RecorderControls({
           } ${disabled ? 'pointer-events-none opacity-60' : ''}`}
           onClick={isRecording ? onStop : onStart}
           disabled={disabled}
+          aria-disabled={disabled}
+          aria-pressed={isRecording}
         >
           {actionLabel}
         </button>
@@ -80,6 +94,7 @@ export function RecorderControls({
             className="inline-flex items-center justify-center rounded-full border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-slate-500 hover:text-white disabled:opacity-50"
             onClick={onReset}
             disabled={disabled || status === 'recording'}
+            aria-disabled={disabled || status === 'recording'}
           >
             Reset take
           </button>
