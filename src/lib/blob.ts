@@ -12,7 +12,7 @@ export async function saveRecordingToBlob(
   const fileName = `recordings/${sessionId}/${step}-${timestamp}.webm`;
 
   return put(fileName, file, {
-    access: 'private',
+    access: 'public',
     contentType: file.type || 'audio/webm',
     token: BLOB_READ_WRITE_TOKEN,
     addRandomSuffix: true
