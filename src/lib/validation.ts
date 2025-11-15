@@ -19,6 +19,7 @@ export const recordingFormSchema = z.object({
   experienceLevel: z.enum(['beginner', 'intermediate', 'advanced']).default('beginner'),
   notes: z.string().max(800).optional(),
   step: stepSchema,
+  patternId: z.string().max(32).optional(),
   durationMs: z.coerce.number().int().nonnegative().optional(),
   peakLevel: z.coerce.number().int().optional(),
   clientMetadata: z

@@ -8,11 +8,13 @@ import type { RecorderStatus } from '@/hooks/useRecorder';
 import { useRecorder } from '@/hooks/useRecorder';
 import { useTonePlayer } from '@/hooks/useTonePlayer';
 import { uploadRecording } from '@/lib/api/recordings';
+import { midiToFrequency } from '@/utils/audio/pitch';
 
 type GenderIdentity = 'woman' | 'man' | 'nonbinary' | 'prefer-not-to-say';
 
 type StepKey = 'profile' | 'speaking' | 'song' | 'range';
 type RecordingStep = 'speaking' | 'song' | 'range';
+type ToneProfile = 'feminine' | 'masculine';
 
 const GENDER_COPY: Record<GenderIdentity, { label: string; description: string }> = {
   woman: {
@@ -35,16 +37,7 @@ const GENDER_COPY: Record<GenderIdentity, { label: string; description: string }
 
 const STEP_ORDER: StepKey[] = ['profile', 'speaking', 'song', 'range'];
 
-const RANGE_SEQUENCE = [
-  { note: 'C3', frequency: 130.81 },
-  { note: 'E3', frequency: 164.81 },
-  { note: 'G3', frequency: 196.0 },
-  { note: 'B3', frequency: 246.94 },
-  { note: 'D4', frequency: 293.66 },
-  { note: 'F4', frequency: 349.23 },
-  { note: 'A4', frequency: 440.0 },
-  { note: 'C5', frequency: 523.25 }
-];
+const RANGE_REQUIRED_TAKES = 3;
 
 const PREP_ITEMS = [
   { title: 'Mic access', detail: 'Allow the browser prompt before hitting record.' },
@@ -52,19 +45,56 @@ const PREP_ITEMS = [
   { title: 'Level check', detail: 'Keep the meter green/amber. If it turns red, back off a little.' }
 ];
 
+const PATTERN_INTERVALS = [0, 2, 4, 2, 0];
+
+type PatternDefinition = {
+  id: string;
+  label: string;
+  description: string;
+  frequencies: number[];
+};
+
+const buildPattern = (id: string, label: string, description: string, rootMidi: number): PatternDefinition => ({
+  id,
+  label,
+  description,
+  frequencies: PATTERN_INTERVALS.map(interval => midiToFrequency(rootMidi + interval))
+});
+
+const PATTERN_LIBRARY: Record<ToneProfile, PatternDefinition[]> = {
+  feminine: [
+    buildPattern('feminine-low', 'Glow low', '“ma” around middle C (do–re–mi–re–do).', 60),
+    buildPattern('feminine-high', 'Float high', 'Lift to the top of your comfortable head mix.', 65)
+  ],
+  masculine: [
+    buildPattern('masculine-low', 'Ground low', '“ma” in a relaxed chest register.', 48),
+    buildPattern('masculine-high', 'Reach high', 'Edge into your upper chest / mix gently.', 53)
+  ]
+};
+
+const DEFAULT_PROFILE_BY_GENDER: Record<GenderIdentity, ToneProfile> = {
+  woman: 'feminine',
+  man: 'masculine',
+  nonbinary: 'feminine',
+  'prefer-not-to-say': 'feminine'
+};
+
 export default function TestFlowPage() {
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [gender, setGender] = useState<GenderIdentity | null>(null);
   const [experienceLevel, setExperienceLevel] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
   const [notes, setNotes] = useState<string>('');
-  const [rangeToneIndex, setRangeToneIndex] = useState(0);
+  const initialProfile: ToneProfile = gender ? DEFAULT_PROFILE_BY_GENDER[gender] : 'feminine';
+  const [toneProfile, setToneProfile] = useState<ToneProfile>(initialProfile);
+  const [profileLocked, setProfileLocked] = useState(false);
+  const [selectedPatternId, setSelectedPatternId] = useState<string>(PATTERN_LIBRARY[initialProfile][0].id);
+  const [rangeSavedCount, setRangeSavedCount] = useState(0);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [uploadingStep, setUploadingStep] = useState<RecordingStep | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [uploadedSteps, setUploadedSteps] = useState<Record<RecordingStep, boolean>>({
+  const [uploadedSteps, setUploadedSteps] = useState<Record<Exclude<RecordingStep, 'range'>, boolean>>({
     speaking: false,
-    song: false,
-    range: false
+    song: false
   });
 
   const speakingRecorder = useRecorder();
@@ -90,10 +120,12 @@ export default function TestFlowPage() {
   }, [songRecorder.status]);
 
   useEffect(() => {
-    setUploadedSteps(prev =>
-      prev.range && rangeRecorder.status !== 'finished' ? { ...prev, range: false } : prev
-    );
-  }, [rangeRecorder.status]);
+    if (gender && !profileLocked) {
+      const mapped = DEFAULT_PROFILE_BY_GENDER[gender];
+      setToneProfile(mapped);
+      setSelectedPatternId(PATTERN_LIBRARY[mapped][0].id);
+    }
+  }, [gender, profileLocked]);
 
   const totalSteps = STEP_ORDER.length;
   const activeStep = STEP_ORDER[currentStep];
@@ -107,11 +139,11 @@ export default function TestFlowPage() {
       case 'song':
         return songRecorder.status === 'finished' && uploadedSteps.song;
       case 'range':
-        return rangeRecorder.status === 'finished' && uploadedSteps.range;
+        return rangeSavedCount >= RANGE_REQUIRED_TAKES;
       default:
         return false;
     }
-  }, [activeStep, gender, rangeRecorder.status, songRecorder.status, speakingRecorder.status, uploadedSteps]);
+  }, [activeStep, gender, rangeSavedCount, songRecorder.status, speakingRecorder.status, uploadedSteps]);
 
   const moveNext = () => {
     setCurrentStep(prev => Math.min(prev + 1, totalSteps - 1));
@@ -135,9 +167,8 @@ export default function TestFlowPage() {
       return;
     }
 
-    if (!gender) {
-      setUploadError('Please select how you identify before saving.');
-      setCurrentStep(0);
+    if (step === 'range' && !selectedPatternId) {
+      setUploadError('Pick a pattern before saving this take.');
       return;
     }
 
@@ -153,6 +184,7 @@ export default function TestFlowPage() {
           experienceLevel,
           notes,
           step,
+          patternId: step === 'range' ? selectedPatternId : undefined,
           durationMs: Math.round(recorder.durationMs),
           peakLevel: Math.round(recorder.level * 100),
           clientMetadata: typeof navigator !== 'undefined' ? { userAgent: navigator.userAgent } : undefined
@@ -160,7 +192,11 @@ export default function TestFlowPage() {
       });
 
       setSessionId(response.sessionId);
-      setUploadedSteps(prev => ({ ...prev, [step]: true }));
+      if (step === 'range') {
+        setRangeSavedCount(prev => prev + 1);
+      } else {
+        setUploadedSteps(prev => ({ ...prev, [step]: true }));
+      }
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : 'Unable to save recording.');
     } finally {
@@ -271,12 +307,22 @@ export default function TestFlowPage() {
               }}
               onStop={rangeRecorder.stop}
               onReset={rangeRecorder.reset}
-              toneIndex={rangeToneIndex}
-              onAdvanceTone={() => setRangeToneIndex(prev => (prev + 1) % RANGE_SEQUENCE.length)}
               onSave={() => handlePersistRecording('range')}
               isUploading={uploadingStep === 'range'}
-              isSaved={uploadedSteps.range}
+              isSaved={rangeSavedCount >= RANGE_REQUIRED_TAKES}
               uploadError={uploadError}
+              toneProfile={toneProfile}
+              onToneProfileChange={profile => {
+                setToneProfile(profile);
+                setProfileLocked(true);
+                const defaultPattern = PATTERN_LIBRARY[profile][0];
+                setSelectedPatternId(defaultPattern.id);
+              }}
+              patterns={PATTERN_LIBRARY[toneProfile]}
+              selectedPatternId={selectedPatternId}
+              onSelectPattern={setSelectedPatternId}
+              rangeSavedCount={rangeSavedCount}
+              requiredTakes={RANGE_REQUIRED_TAKES}
             />
           ) : null}
 
@@ -516,64 +562,116 @@ function RangeStep({
   onStart,
   onStop,
   onReset,
-  toneIndex,
-  onAdvanceTone,
   onSave,
   isUploading,
-  isSaved,
-  uploadError
+  uploadError,
+  toneProfile,
+  onToneProfileChange,
+  patterns,
+  selectedPatternId,
+  onSelectPattern,
+  rangeSavedCount,
+  requiredTakes
 }: StepRecorderProps & {
-  toneIndex: number;
-  onAdvanceTone: () => void;
+  toneProfile: ToneProfile;
+  onToneProfileChange: (profile: ToneProfile) => void;
+  patterns: PatternDefinition[];
+  selectedPatternId: string | null;
+  onSelectPattern: (patternId: string) => void;
+  rangeSavedCount: number;
+  requiredTakes: number;
 }) {
-  const { isPlaying, playTone } = useTonePlayer('triangle');
-  const currentTone = RANGE_SEQUENCE[toneIndex];
+  const { playTone } = useTonePlayer('triangle');
+  const [patternPlayingId, setPatternPlayingId] = useState<string | null>(null);
 
-  const handlePlay = async () => {
-    const tone = RANGE_SEQUENCE[toneIndex];
-    await playTone(tone.frequency, 1800);
-    onAdvanceTone();
+  const handlePlayPattern = async (pattern: PatternDefinition) => {
+    if (patternPlayingId) return;
+    setPatternPlayingId(pattern.id);
+    for (const frequency of pattern.frequencies) {
+      await playTone(frequency, 420);
+    }
+    setPatternPlayingId(null);
   };
+
   return (
     <div className="space-y-6">
       <header className="space-y-2">
         <h2 className="text-2xl font-semibold text-white">Call-and-response tone sweeps</h2>
         <p className="text-sm text-slate-300">
-          We’ll play eight tones from low to high. Match each one with a sustained “ah” for ~4 seconds. If a pitch feels
-          unsafe, skip it—your comfort matters.
+          Instead of single notes, mimic these short “ma ma ma” patterns. They tell us how your voice glides between
+          nearby pitches without strain.
         </p>
       </header>
-      <div className="space-y-4 rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h3 className="text-sm font-semibold text-slate-200">Tone playlist</h3>
-            <p className="mt-1 text-sm text-slate-300">We’ll adjust dynamically after your first pass.</p>
-            <p className="text-xs text-slate-500">Headphones recommended to avoid feedback loops.</p>
+
+      <div className="space-y-3 rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm font-semibold text-slate-200">Tone focus</p>
+          <div className="flex flex-wrap gap-2">
+            {(['feminine', 'masculine'] as ToneProfile[]).map(profile => {
+              const isActive = toneProfile === profile;
+              return (
+                <button
+                  key={profile}
+                  type="button"
+                  onClick={() => onToneProfileChange(profile)}
+                  aria-pressed={isActive}
+                  className={`rounded-full border px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.25em] transition ${
+                    isActive
+                      ? 'border-emerald-400 bg-emerald-400/10 text-emerald-100'
+                      : 'border-slate-700 text-slate-300 hover:border-slate-500'
+                  }`}
+                >
+                  {profile === 'feminine' ? 'Brighter' : 'Deeper'}
+                </button>
+              );
+            })}
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              void handlePlay();
-            }}
-            disabled={isPlaying}
-            className="inline-flex items-center justify-center rounded-full border border-emerald-500 px-4 py-2 text-sm font-semibold text-emerald-200 transition hover:border-emerald-400 hover:text-emerald-100 disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {isPlaying ? 'Playing…' : `Play ${currentTone.note}`}
-          </button>
         </div>
-        <ul className="flex flex-wrap gap-2 text-sm text-slate-300">
-          {RANGE_SEQUENCE.map((tone, index) => (
-            <li
-              key={tone.note}
-              className={`rounded-full px-3 py-1 ${
-                index === toneIndex ? 'bg-emerald-500/20 text-emerald-100' : 'bg-slate-900/60'
+        <p className="text-xs text-slate-400">Switch anytime—pick whatever range feels the most natural right now.</p>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {patterns.map(pattern => {
+          const isSelected = selectedPatternId === pattern.id;
+          return (
+            <div
+              key={pattern.id}
+              className={`rounded-2xl border p-4 ${
+                isSelected ? 'border-emerald-400 bg-emerald-500/5' : 'border-slate-800 bg-slate-950/40'
               }`}
             >
-              {tone.note}
-            </li>
-          ))}
-        </ul>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-white">{pattern.label}</p>
+                  <p className="text-xs text-slate-400">{pattern.description}</p>
+                </div>
+                <button
+                  type="button"
+                  className="rounded-full border border-emerald-500 px-3 py-1 text-xs font-semibold text-emerald-200 transition hover:border-emerald-400 hover:text-emerald-100 disabled:opacity-50"
+                  onClick={() => {
+                    void handlePlayPattern(pattern);
+                  }}
+                  disabled={patternPlayingId !== null && patternPlayingId !== pattern.id}
+                >
+                  {patternPlayingId === pattern.id ? 'Playing…' : 'Play'}
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => onSelectPattern(pattern.id)}
+                className={`mt-4 w-full rounded-full px-4 py-2 text-sm font-semibold ${
+                  isSelected ? 'bg-emerald-500 text-emerald-950' : 'bg-slate-800 text-slate-200 hover:bg-slate-700'
+                }`}
+              >
+                {isSelected ? 'Selected pattern' : 'Use this pattern'}
+              </button>
+            </div>
+          );
+        })}
       </div>
+
+      <RangeProgress completed={rangeSavedCount} required={requiredTakes} />
+
       <RecorderControls
         status={status}
         level={level}
@@ -585,7 +683,7 @@ function RangeStep({
         onReset={onReset}
         disabled={status === 'processing' || isUploading}
       />
-      <RecordingActions onSave={onSave} isUploading={isUploading} isSaved={isSaved} uploadError={uploadError} />
+      <RecordingActions onSave={onSave} isUploading={isUploading} isSaved={false} uploadError={uploadError} />
     </div>
   );
 }
@@ -628,6 +726,25 @@ function RecordingActions({
           Saving uploads the take securely to Vercel Blob, encrypts the URL, and links it to your session summary.
         </p>
       ) : null}
+    </div>
+  );
+}
+
+function RangeProgress({ completed, required }: { completed: number; required: number }) {
+  const clamped = Math.min(completed, required);
+  const percentage = Math.min(100, (clamped / required) * 100);
+  return (
+    <div className="space-y-2 rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+      <div className="flex items-center justify-between text-sm text-slate-300">
+        <span>Takes saved</span>
+        <span className="font-semibold text-white">
+          {clamped}/{required}
+        </span>
+      </div>
+      <div className="h-1.5 rounded-full bg-slate-800">
+        <div className="h-full rounded-full bg-emerald-500 transition-[width]" style={{ width: `${percentage}%` }} />
+      </div>
+      <p className="text-xs text-slate-500">Aim for a low pass, a high pass, and one extra for safety.</p>
     </div>
   );
 }

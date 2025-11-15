@@ -70,6 +70,7 @@ export async function POST(request: Request) {
       .values({
         sessionId: ensuredSessionId,
         step: parsed.step,
+        patternId: parsed.patternId,
         blobUrl: blob.url,
         durationMs: parsed.durationMs,
         peakLevel: parsed.peakLevel,

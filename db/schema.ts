@@ -28,6 +28,7 @@ export const recordings = pgTable('recordings', {
     .notNull()
     .references(() => sessions.id, { onDelete: 'cascade' }),
   step: stepEnum('step').notNull(),
+  patternId: text('pattern_id'),
   blobUrl: text('blob_url').notNull(),
   durationMs: integer('duration_ms'),
   peakLevel: integer('peak_level'),
