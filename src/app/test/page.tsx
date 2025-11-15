@@ -180,7 +180,7 @@ export default function TestFlowPage() {
         file: recorder.blob,
         metadata: {
           sessionId,
-          gender,
+          gender: gender ?? undefined,
           experienceLevel,
           notes,
           step,
