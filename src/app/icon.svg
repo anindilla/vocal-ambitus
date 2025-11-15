@@ -1,0 +1,25 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ambitusGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="waveGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#a5f3fc"/>
+      <stop offset="100%" stop-color="#22d3ee"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#ambitusGradient)"/>
+  <path
+    d="M20 74c14-8 22-24 34-24s20 24 32 24 18-24 22-36"
+    fill="none"
+    stroke="url(#waveGradient)"
+    stroke-width="10"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    opacity="0.9"
+  />
+  <circle cx="64" cy="64" r="12" fill="#0f172a" opacity="0.6"/>
+  <circle cx="64" cy="64" r="6" fill="#a5f3fc"/>
+</svg>
+
