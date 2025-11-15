@@ -9,13 +9,12 @@ import type { RecorderStatus } from '@/hooks/useRecorder';
 import { useRecorder } from '@/hooks/useRecorder';
 import { useTonePlayer } from '@/hooks/useTonePlayer';
 import { uploadRecording } from '@/lib/api/recordings';
-import { midiToFrequency } from '@/utils/audio/pitch';
+import { PATTERN_VARIANT_COUNT, getPatternSet, ToneProfile, PatternDefinition } from '@/constants/tonePatterns';
 
 type GenderIdentity = 'woman' | 'man' | 'nonbinary' | 'prefer-not-to-say';
 
 type StepKey = 'profile' | 'speaking' | 'song' | 'range';
 type RecordingStep = 'speaking' | 'song' | 'range';
-type ToneProfile = 'feminine' | 'masculine';
 
 const GENDER_COPY: Record<GenderIdentity, { label: string; description: string }> = {
   woman: {
@@ -40,39 +39,6 @@ const STEP_ORDER: StepKey[] = ['profile', 'speaking', 'song', 'range'];
 
 const RANGE_REQUIRED_TAKES = 3;
 
-const PREP_ITEMS = [
-  { title: 'Mic access', detail: 'Allow the browser prompt before hitting record.' },
-  { title: 'Quiet zone', detail: 'Shut doors, mute other devices, and pop on headphones if you have them.' },
-  { title: 'Level check', detail: 'Keep the meter green/amber. If it turns red, back off a little.' }
-];
-
-const PATTERN_INTERVALS = [0, 2, 4, 2, 0];
-
-type PatternDefinition = {
-  id: string;
-  label: string;
-  description: string;
-  frequencies: number[];
-};
-
-const buildPattern = (id: string, label: string, description: string, rootMidi: number): PatternDefinition => ({
-  id,
-  label,
-  description,
-  frequencies: PATTERN_INTERVALS.map(interval => midiToFrequency(rootMidi + interval))
-});
-
-const PATTERN_LIBRARY: Record<ToneProfile, PatternDefinition[]> = {
-  feminine: [
-    buildPattern('feminine-low', 'Glow low', '“ma” around middle C (do–re–mi–re–do).', 60),
-    buildPattern('feminine-high', 'Float high', 'Lift to the top of your comfortable head mix.', 65)
-  ],
-  masculine: [
-    buildPattern('masculine-low', 'Ground low', '“ma” in a relaxed chest register.', 48),
-    buildPattern('masculine-high', 'Reach high', 'Edge into your upper chest / mix gently.', 53)
-  ]
-};
-
 const DEFAULT_PROFILE_BY_GENDER: Record<GenderIdentity, ToneProfile> = {
   woman: 'feminine',
   man: 'masculine',
@@ -88,8 +54,10 @@ export default function TestFlowPage() {
   const [notes, setNotes] = useState<string>('');
   const initialProfile: ToneProfile = gender ? DEFAULT_PROFILE_BY_GENDER[gender] : 'feminine';
   const [toneProfile, setToneProfile] = useState<ToneProfile>(initialProfile);
+  const [patternVariant, setPatternVariant] = useState(() => Math.floor(Math.random() * PATTERN_VARIANT_COUNT));
+  const patternSet = useMemo(() => getPatternSet(toneProfile, patternVariant), [toneProfile, patternVariant]);
   const [profileLocked, setProfileLocked] = useState(false);
-  const [selectedPatternId, setSelectedPatternId] = useState<string>(PATTERN_LIBRARY[initialProfile][0].id);
+  const [selectedPatternId, setSelectedPatternId] = useState<string>(patternSet[0].id);
   const [rangeSavedCount, setRangeSavedCount] = useState(0);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [uploadingStep, setUploadingStep] = useState<RecordingStep | null>(null);
@@ -126,9 +94,13 @@ export default function TestFlowPage() {
     if (gender && !profileLocked) {
       const mapped = DEFAULT_PROFILE_BY_GENDER[gender];
       setToneProfile(mapped);
-      setSelectedPatternId(PATTERN_LIBRARY[mapped][0].id);
+      setPatternVariant(Math.floor(Math.random() * PATTERN_VARIANT_COUNT));
     }
   }, [gender, profileLocked]);
+
+  useEffect(() => {
+    setSelectedPatternId(patternSet[0].id);
+  }, [patternSet]);
 
   const totalSteps = STEP_ORDER.length;
   const activeStep = STEP_ORDER[currentStep];
@@ -210,6 +182,7 @@ export default function TestFlowPage() {
       setSessionId(response.sessionId);
       if (step === 'range') {
         setRangeSavedCount(prev => prev + 1);
+        setPatternVariant(prev => (prev + 1) % PATTERN_VARIANT_COUNT);
       } else {
         setUploadedSteps(prev => ({ ...prev, [step]: true }));
       }
@@ -325,16 +298,15 @@ export default function TestFlowPage() {
               onReset={rangeRecorder.reset}
               onSave={() => handlePersistRecording('range')}
               isUploading={uploadingStep === 'range'}
-              isSaved={rangeSavedCount >= RANGE_REQUIRED_TAKES}
+              isSaved={false}
               uploadError={uploadError}
               toneProfile={toneProfile}
               onToneProfileChange={profile => {
                 setToneProfile(profile);
                 setProfileLocked(true);
-                const defaultPattern = PATTERN_LIBRARY[profile][0];
-                setSelectedPatternId(defaultPattern.id);
+                setPatternVariant(Math.floor(Math.random() * PATTERN_VARIANT_COUNT));
               }}
-              patterns={PATTERN_LIBRARY[toneProfile]}
+              patterns={patternSet}
               selectedPatternId={selectedPatternId}
               onSelectPattern={setSelectedPatternId}
               rangeSavedCount={rangeSavedCount}
@@ -740,9 +712,7 @@ function RecordingActions({
         </p>
       ) : null}
       {!isSaved ? (
-        <p className="text-xs text-slate-400">
-          Saving uploads the take securely to Vercel Blob, encrypts the URL, and links it to your session summary.
-        </p>
+        <p className="text-xs text-slate-400">Saving keeps the take tied to this session recap—re-record anytime.</p>
       ) : null}
     </div>
   );
